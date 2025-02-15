@@ -8,11 +8,12 @@ import requests
 import socket
 import sys
 import time
+from plyer import notification
 
 BETAAL_ADDR = "10.1.52.150"
 BETAAL_PORT = 5000
+
 BETAAL_URL = f"http://{BETAAL_ADDR}:{BETAAL_PORT}"
-# BETAAL_URL = "https://mock.apidog.com/m1/627787-595603-default"
 BETAAL_VERSION = "1.0"
 
 HEADERS = {
@@ -94,7 +95,8 @@ def get_local_ip():
 def send_heartbeat(status="ON"):
   heartbeat_payload["agentStatus"] = status
   hb_response = requests.post(
-      BETAAL_URL + "/student/create", json=heartbeat_payload, headers=HEADERS)
+  BETAAL_URL + "/student/create", json=heartbeat_payload, headers=HEADERS, timeout=2)
+
   if (status == "ON"):
     print("  Heartbeat sent. Status code:", hb_response.status_code)
 
@@ -105,7 +107,7 @@ def send_heartbeat(status="ON"):
 
 def main():
   print("Starting VIKRAM - Defeating BETAAL's trickery")
-  
+
   hall_ticket_no = sys.argv[1].upper() if len(sys.argv) > 1 else ""
   server_ip = sys.argv[2] if len(sys.argv) > 2 else ""
 
@@ -150,8 +152,17 @@ def main():
       send_heartbeat("OFF")
       exit(0)
     except Exception as e:
-      print(f"Error: {e}", file=sys.stderr)
-      time.sleep(heartbeat_interval)
+        notification.notify(
+            title = 'Disconnected from betaal server',
+            message = 'Try reconnecting to test  network',
+            app_icon = None,
+            timeout = 10,
+            hints = {
+                "urgency": 2
+            }
+        )
+        print(f"Error: {e}", file=sys.stderr)
+        time.sleep(heartbeat_interval)
 
 
 if __name__ == "__main__":
