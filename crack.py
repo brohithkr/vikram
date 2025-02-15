@@ -7,7 +7,6 @@ import re
 import ipaddress
 
 serverAddr = "http://10.11.52.150:5000"
-serverAddr = "http://127.0.0.1:3658/m1/627787-595603-default"
 
 headers = {
     "user-agent": "Java/11.0.26",
