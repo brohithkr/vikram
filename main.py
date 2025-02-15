@@ -12,6 +12,7 @@ import time
 BETAAL_ADDR = "10.1.52.150"
 BETAAL_PORT = 5000
 BETAAL_URL = f"http://{BETAAL_ADDR}:{BETAAL_PORT}"
+# BETAAL_URL = "https://mock.apidog.com/m1/627787-595603-default"
 BETAAL_VERSION = "1.0"
 
 HEADERS = {
@@ -47,17 +48,13 @@ def validate_hall_ticket_no(hall_ticket_no):
 
 def validate_ip(ip):
   """Validate IP address format."""
-  try:
-    ipaddress.ip_address(ip)
-    return True
-  except ValueError:
-    return False
+  pattern = r'10.11.([0-9]|[1-9][0-9]|1[0-9]{2]|2})'
 
 
 def get_hall_ticket_no():
   """Get and validate hall ticket number interactively."""
   for _ in range(3):
-    hall_ticket_no = input("Enter hall ticket number: ").strip().upper()
+    hall_ticket_no = input("\nEnter hall ticket number: ").strip().upper()
     if validate_hall_ticket_no(hall_ticket_no):
       return hall_ticket_no
     print("Invalid hall ticket number. Try again.", file=sys.stderr)
@@ -68,14 +65,13 @@ def get_hall_ticket_no():
 
 def get_server_ip(servers, server_names):
   """Get and validate server IP interactively."""
-  print("Available servers:")
+  print("\nAvailable servers:")
   for i in range(len(servers)):
     print(f"  {i+1}. {servers[i]} - {server_names[i]}")
   for _ in range(3):
     choice = input("Select server by number: ").strip()
     if choice.isdigit() and 1 <= int(choice) <= len(servers):
-      server_ip = servers[int(choice) - 1]
-      break
+      return servers[int(choice) - 1]
     print("Invalid input. Try again.", file=sys.stderr)
   else:
     raise Exception("Invalid input. Max attempts exceeded. Exiting.")
@@ -108,6 +104,8 @@ def send_heartbeat(status="ON"):
 
 
 def main():
+  print("Starting VIKRAM - Defeating BETAAL's trickery")
+  
   hall_ticket_no = sys.argv[1].upper() if len(sys.argv) > 1 else ""
   server_ip = sys.argv[2] if len(sys.argv) > 2 else ""
 
@@ -116,7 +114,7 @@ def main():
   send_heartbeat("OFF")
 
   response = requests.get(
-      BETAAL_URL + "/commands/get/{OS}", headers=HEADERS)
+      BETAAL_URL + f"/commands/get/{OS}", headers=HEADERS)
   if not response.ok:
     raise Exception("Failed to get details from the server. Exiting.")
 
@@ -142,13 +140,13 @@ def main():
   heartbeat_payload["hallTicketNo"] = hall_ticket_no
   heartbeat_payload["serverIp"] = server_ip
 
-  print(f"Simulating BETAAL for {hall_ticket_no} to server {server_ip}")
+  print(f"\nSimulating BETAAL for {hall_ticket_no} to server {server_ip}")
   while True:
     try:
       send_heartbeat()
       time.sleep(heartbeat_interval)
     except KeyboardInterrupt:
-      print("\nStopping heartbeat...")
+      print("\033[2K\nStopping BETAAL simulation...")
       send_heartbeat("OFF")
       exit(0)
     except Exception as e:
