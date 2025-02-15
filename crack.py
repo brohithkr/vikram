@@ -127,7 +127,7 @@ def main():
             print("Error response:", hb_response.text)
 
     # Step 3: Send heartbeat every 30 seconds (or as specified)
-    print(f"Starting beetal simulation for {hall_ticket} to server {server_ip}")
+    print(f"Starting betaal simulation for {hall_ticket} to server {server_ip}")
     while True:
         try:
             send_heartbeat()
