@@ -153,8 +153,8 @@ def main():
       exit(0)
     except Exception as e:
         notification.notify(
-            title = 'Disconnected from betaal server',
-            message = 'Try reconnecting to test  network',
+            title = 'Disconnected from BETAAL server',
+            message = 'Try reconnecting to test network',
             app_icon = None,
             timeout = 10,
             hints = {
