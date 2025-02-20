@@ -10,7 +10,7 @@ import sys
 import time
 from plyer import notification
 
-BETAAL_ADDR = "10.1.52.150"
+BETAAL_ADDR = "10.11.52.150"
 BETAAL_PORT = 5000
 
 BETAAL_URL = f"http://{BETAAL_ADDR}:{BETAAL_PORT}"
