@@ -95,7 +95,7 @@ def get_local_ip():
 def send_heartbeat(status="ON"):
   heartbeat_payload["agentStatus"] = status
   hb_response = requests.post(
-  BETAAL_URL + "/student/create", json=heartbeat_payload, headers=HEADERS, timeout=2)
+  BETAAL_URL + "/student/start", json=heartbeat_payload, headers=HEADERS, timeout=2)
 
   if (status == "ON"):
     print("  Heartbeat sent. Status code:", hb_response.status_code)
@@ -116,9 +116,12 @@ def main():
   send_heartbeat("OFF")
 
   response = requests.get(
-      BETAAL_URL + f"/commands/get/{OS}", headers=HEADERS)
+      BETAAL_URL + f"/commands/get/{OS}", headers=HEADERS,)
   if not response.ok:
     raise Exception("Failed to get details from the server. Exiting.")
+  else:
+    HEADERS["etag"] = response.headers.get("etag", "")
+
 
   commands_data = response.json()
   servers = commands_data.get("server_ips", [])
