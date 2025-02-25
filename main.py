@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ##################### VIKRAM - Defeating BETAAL's trickery #####################
 
 
