@@ -10,7 +10,11 @@ import requests
 import socket
 import sys
 import time
+from typing import Tuple
+import netifaces
 from plyer import notification
+
+from netutils import switch_interface
 
 BETAAL_ADDR = "10.11.52.150"
 BETAAL_PORT = 5000
@@ -80,23 +84,32 @@ def get_server_ip(servers, server_names):
     raise Exception("Invalid input. Max attempts exceeded. Exiting.")
 
 
-def get_local_ip():
+def get_local_ip() -> Tuple[(str, requests.Session)]:
   """Determine the local IP address of the device."""
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  s.settimeout(0)
-  try:
-    s.connect((BETAAL_ADDR, BETAAL_PORT))
-    local_ip = s.getsockname()[0]
-  except Exception:
-    raise Exception("Not connected to the test network, Exiting")
-  finally:
-    s.close()
-  return local_ip
+  session = requests.sessions.session()
+  ifaces = netifaces.interfaces()
+  for iface in ifaces:
+    addr = None
+    try:
+      addr = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+    except KeyError:
+      continue
+    switch_interface(session, iface)
+    try:
+        resp = session.get(BETAAL_URL, timeout=2)
+        if(resp.status_code < 400):
+          return (addr, session)
+    except requests.ConnectionError:
+      pass
+    except requests.Timeout:
+      pass
+  raise Exception("Not connected to the test network, Exiting")
 
 
-def send_heartbeat(status="ON"):
+
+def send_heartbeat(session: requests.Session, status="ON"):
   heartbeat_payload["agentStatus"] = status
-  hb_response = requests.post(
+  hb_response = session.post(
   BETAAL_URL + "/student/start", json=heartbeat_payload, headers=HEADERS, timeout=2)
 
   if (status == "ON"):
@@ -113,11 +126,11 @@ def main():
   hall_ticket_no = sys.argv[1].upper() if len(sys.argv) > 1 else ""
   server_ip = sys.argv[2] if len(sys.argv) > 2 else ""
 
-  heartbeat_payload["localIp"] = get_local_ip()
+  (localip, session) = get_local_ip()
+  heartbeat_payload["localIp"] = localip
+  send_heartbeat(session,"OFF")
 
-  send_heartbeat("OFF")
-
-  response = requests.get(
+  response = session.get(
       BETAAL_URL + f"/commands/get/{OS}", headers=HEADERS,)
   if not response.ok:
     raise Exception("Failed to get details from the server. Exiting.")
@@ -150,11 +163,11 @@ def main():
   print(f"\nSimulating BETAAL for {hall_ticket_no} to server {server_ip}")
   while True:
     try:
-      send_heartbeat()
+      send_heartbeat(session=session)
       time.sleep(heartbeat_interval)
     except KeyboardInterrupt:
       print("\033[2K\nStopping BETAAL simulation...")
-      send_heartbeat("OFF")
+      send_heartbeat(session=session,status="OFF")
       exit(0)
     except Exception as e:
         notification.notify(
