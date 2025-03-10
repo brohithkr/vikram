@@ -83,7 +83,7 @@ def get_server_ip(servers, server_names):
 
 
 def get_local_ip() -> Tuple[(str, requests.Session)]:
-  """Determine the local IP address of the device."""  
+  """Determine the local IP address of the device."""
   session = requests.sessions.session()
   ifaces = netifaces.interfaces()
   for iface in ifaces:
@@ -97,9 +97,7 @@ def get_local_ip() -> Tuple[(str, requests.Session)]:
       resp = session.get(BETAAL_URL, timeout=2)
       if (resp.status_code < 400):
         return (addr, session)
-    except requests.ConnectionError:
-      pass
-    except requests.Timeout:
+    except (requests.ConnectionError, requests.Timeout):
       pass
   raise Exception("Not connected to the test network, Exiting")
 
@@ -166,22 +164,24 @@ def main():
       print("\033[2K\nStopping BETAAL simulation...")
       send_heartbeat(status="OFF")
       exit(0)
-    except Exception as e:
+    except (requests.ConnectionError, requests.Timeout):
       notification.notify(
           title='Disconnected from BETAAL server',
           message='Try reconnecting to test network',
+          app_name="Vikram",
           app_icon=None,
           timeout=10,
           hints={
-              "urgency": 2
+            "urgency": 2
           }
       )
+    except Exception as e:
       print(f"Error: {e}", file=sys.stderr)
       time.sleep(heartbeat_interval)
 
 
 if __name__ == "__main__":
-  try: 
+  try:
     main()
   except Exception as e:
     print("\nErr:", e.args[0], file=sys.stderr)
