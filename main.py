@@ -2,12 +2,8 @@
 
 ##################### VIKRAM - Defeating BETAAL's trickery #####################
 
-
-import ipaddress
-import platform
 import re
 import requests
-import socket
 import sys
 import time
 from typing import Tuple
@@ -43,6 +39,8 @@ heartbeat_payload = {
     "appVersion": BETAAL_VERSION,
     "token": None
 }
+
+session = None
 
 ################################################################################
 
@@ -85,7 +83,7 @@ def get_server_ip(servers, server_names):
 
 
 def get_local_ip() -> Tuple[(str, requests.Session)]:
-  """Determine the local IP address of the device."""
+  """Determine the local IP address of the device."""  
   session = requests.sessions.session()
   ifaces = netifaces.interfaces()
   for iface in ifaces:
@@ -96,9 +94,9 @@ def get_local_ip() -> Tuple[(str, requests.Session)]:
       continue
     switch_interface(session, iface)
     try:
-        resp = session.get(BETAAL_URL, timeout=2)
-        if(resp.status_code < 400):
-          return (addr, session)
+      resp = session.get(BETAAL_URL, timeout=2)
+      if (resp.status_code < 400):
+        return (addr, session)
     except requests.ConnectionError:
       pass
     except requests.Timeout:
@@ -106,11 +104,10 @@ def get_local_ip() -> Tuple[(str, requests.Session)]:
   raise Exception("Not connected to the test network, Exiting")
 
 
-
-def send_heartbeat(session: requests.Session, status="ON"):
+def send_heartbeat(status="ON"):
   heartbeat_payload["agentStatus"] = status
   hb_response = session.post(
-  BETAAL_URL + "/student/start", json=heartbeat_payload, headers=HEADERS, timeout=2)
+      BETAAL_URL + "/student/start", json=heartbeat_payload, headers=HEADERS, timeout=2)
 
   if (status == "ON"):
     print("  Heartbeat sent. Status code:", hb_response.status_code)
@@ -126,9 +123,10 @@ def main():
   hall_ticket_no = sys.argv[1].upper() if len(sys.argv) > 1 else ""
   server_ip = sys.argv[2] if len(sys.argv) > 2 else ""
 
-  (localip, session) = get_local_ip()
+  global session
+  localip, session = get_local_ip()
   heartbeat_payload["localIp"] = localip
-  send_heartbeat(session,"OFF")
+  send_heartbeat("OFF")
 
   response = session.get(
       BETAAL_URL + f"/commands/get/{OS}", headers=HEADERS,)
@@ -136,7 +134,6 @@ def main():
     raise Exception("Failed to get details from the server. Exiting.")
   else:
     HEADERS["etag"] = response.headers.get("etag", "")
-
 
   commands_data = response.json()
   servers = commands_data.get("server_ips", [])
@@ -163,24 +160,24 @@ def main():
   print(f"\nSimulating BETAAL for {hall_ticket_no} to server {server_ip}")
   while True:
     try:
-      send_heartbeat(session=session)
+      send_heartbeat()
       time.sleep(heartbeat_interval)
     except KeyboardInterrupt:
       print("\033[2K\nStopping BETAAL simulation...")
-      send_heartbeat(session=session,status="OFF")
+      send_heartbeat(status="OFF")
       exit(0)
     except Exception as e:
-        notification.notify(
-            title = 'Disconnected from BETAAL server',
-            message = 'Try reconnecting to test network',
-            app_icon = None,
-            timeout = 10,
-            hints = {
-                "urgency": 2
-            }
-        )
-        print(f"Error: {e}", file=sys.stderr)
-        time.sleep(heartbeat_interval)
+      notification.notify(
+          title='Disconnected from BETAAL server',
+          message='Try reconnecting to test network',
+          app_icon=None,
+          timeout=10,
+          hints={
+              "urgency": 2
+          }
+      )
+      print(f"Error: {e}", file=sys.stderr)
+      time.sleep(heartbeat_interval)
 
 
 if __name__ == "__main__":
