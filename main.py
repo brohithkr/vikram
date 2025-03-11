@@ -159,29 +159,28 @@ def main():
   while True:
     try:
       send_heartbeat()
-      time.sleep(heartbeat_interval)
-    except KeyboardInterrupt:
-      print("\033[2K\nStopping BETAAL simulation...")
-      send_heartbeat(status="OFF")
-      exit(0)
     except (requests.ConnectionError, requests.Timeout):
+      print("Error: Disconnected from BETAAL server", file=sys.stderr)
       notification.notify(
           title='Disconnected from BETAAL server',
           message='Try reconnecting to test network',
           app_name="Vikram",
-          app_icon=None,
-          timeout=10,
-          hints={
-            "urgency": 2
-          }
+          app_icon='notification',
+          timeout=5,
+          hints={"urgency": 2}
       )
     except Exception as e:
       print(f"Error: {e}", file=sys.stderr)
-      time.sleep(heartbeat_interval)
-
+    finally: 
+      try:
+        time.sleep(heartbeat_interval)
+      except KeyboardInterrupt:
+        print("\033[2K\nStopping BETAAL simulation...")
+        send_heartbeat(status="OFF")
+        exit(0)
 
 if __name__ == "__main__":
   try:
     main()
   except Exception as e:
-    print("\nErr:", e.args[0], file=sys.stderr)
+    print("\nError:", e.args[0], file=sys.stderr)
