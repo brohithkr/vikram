@@ -5,7 +5,7 @@ description = "Defeating BETAAL's trickery"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "dbus-python>=1.3.2",
+    "dbus-python>=1.3.2 ; sys_platform == 'linux'",
     "netifaces>=0.11.0",
     "plyer>=2.1.0",
     "requests>=2.32.3",
