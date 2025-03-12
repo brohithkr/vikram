@@ -176,7 +176,10 @@ def main():
         time.sleep(heartbeat_interval)
       except KeyboardInterrupt:
         print("\033[2K\nStopping BETAAL simulation...")
-        send_heartbeat(status="OFF")
+        try:
+          send_heartbeat(status="OFF")
+        except Exception:
+          print("Error: Disconnected from BETAAL server", file=sys.stderr)
         exit(0)
 
 if __name__ == "__main__":
