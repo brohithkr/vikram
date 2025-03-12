@@ -68,6 +68,8 @@ def get_hall_ticket_no():
 
 def get_server_ip(servers, server_names):
   """Get and validate server IP interactively."""
+  if len(servers) == 1: return servers[0]
+  
   print("\nAvailable servers:")
   for i in range(len(servers)):
     print(f"  {i+1}. {servers[i]} - {server_names[i]}")
