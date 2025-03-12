@@ -2,13 +2,11 @@
 
 ##################### VIKRAM - Defeating BETAAL's trickery #####################
 
-import re
-import requests
-import sys
-import time
+import netifaces, platform, re, requests, sys, time
 from typing import Tuple
-import netifaces
-from plyer import notification
+
+if platform.system() != "Darwin":
+  from plyer import notification
 
 from netutils import switch_interface
 
@@ -161,14 +159,15 @@ def main():
       send_heartbeat()
     except (requests.ConnectionError, requests.Timeout):
       print("Error: Disconnected from BETAAL server", file=sys.stderr)
-      notification.notify(
-          title='Disconnected from BETAAL server',
-          message='Try reconnecting to test network',
-          app_name="Vikram",
-          app_icon='notification',
-          timeout=5,
-          hints={"urgency": 2}
-      )
+      if platform.system() != "Darwin":
+        notification.notify(
+            title='Disconnected from BETAAL server',
+            message='Try reconnecting to test network',
+            app_name="Vikram",
+            app_icon='notification',
+            timeout=5,
+            hints={"urgency": 2}
+        )
     except Exception as e:
       print(f"Error: {e}", file=sys.stderr)
     finally: 
