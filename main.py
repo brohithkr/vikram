@@ -2,7 +2,12 @@
 
 ##################### VIKRAM - Defeating BETAAL's trickery #####################
 
-import netifaces, platform, re, requests, sys, time
+import ifaddr
+import platform
+import re
+import requests
+import sys
+import time
 from typing import Tuple
 
 if platform.system() != "Darwin":
@@ -68,8 +73,9 @@ def get_hall_ticket_no():
 
 def get_server_ip(servers, server_names):
   """Get and validate server IP interactively."""
-  if len(servers) == 1: return servers[0]
-  
+  if len(servers) == 1:
+    return servers[0]
+
   print("\nAvailable servers:")
   for i in range(len(servers)):
     print(f"  {i+1}. {servers[i]} - {server_names[i]}")
@@ -82,23 +88,22 @@ def get_server_ip(servers, server_names):
     raise Exception("Invalid input. Max attempts exceeded. Exiting.")
 
 
-def get_local_ip() -> Tuple[(str, requests.Session)]:
+def get_local_ip() -> Tuple[str, requests.Session]:
   """Determine the local IP address of the device."""
   session = requests.sessions.session()
-  ifaces = netifaces.interfaces()
-  for iface in ifaces:
-    addr = None
-    try:
-      addr = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
-    except KeyError:
-      continue
-    switch_interface(session, iface)
-    try:
-      resp = session.get(BETAAL_URL, timeout=2)
-      if (resp.status_code < 400):
-        return (addr, session)
-    except (requests.ConnectionError, requests.Timeout):
-      pass
+  adapters = ifaddr.get_adapters()
+
+  for adapter in adapters:
+    for ip in adapter.ips:
+      if isinstance(ip.ip, str) and ip.is_IPv4:
+        switch_interface(session, adapter.nice_name)
+        try:
+          resp = session.get(BETAAL_URL, timeout=2)
+          if resp.status_code < 400:
+            return ip.ip, session
+        except (requests.ConnectionError, requests.Timeout):
+          pass
+
   raise Exception("Not connected to the test network, Exiting")
 
 
@@ -172,7 +177,7 @@ def main():
         )
     except Exception as e:
       print(f"Error: {e}", file=sys.stderr)
-    finally: 
+    finally:
       try:
         time.sleep(heartbeat_interval)
       except KeyboardInterrupt:
@@ -182,6 +187,7 @@ def main():
         except Exception:
           print("Error: Disconnected from BETAAL server", file=sys.stderr)
         exit(0)
+
 
 if __name__ == "__main__":
   try:
