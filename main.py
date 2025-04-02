@@ -113,7 +113,7 @@ def send_heartbeat(status="ON"):
       BETAAL_URL + "/student/start", json=heartbeat_payload, headers=HEADERS, timeout=2)
 
   if (status == "ON"):
-    print(f"  {time.strftime('%I:%M:%S %p')} - Heartbeat sent. Status code:", hb_response.status_code, end="")
+    print(f"  {time.strftime('%I:%M:%S %p')} - Heartbeat sent. Status code:", hb_response.status_code, end="\r")
 
   # Can be ignored??
   # if not hb_response.ok:
@@ -160,12 +160,14 @@ def main():
   heartbeat_payload["hallTicketNo"] = hall_ticket_no
   heartbeat_payload["serverIp"] = server_ip
 
+  prev = "Title"
   print(f"\nSimulating BETAAL for {hall_ticket_no} to server {server_ip}")
   while True:
     try:
       send_heartbeat()
+      prev = "HB"
     except (requests.ConnectionError, requests.Timeout):
-      print()
+      if prev == "HB": print()
       print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
       if platform.system() != "Darwin":
         notification.notify(
@@ -176,17 +178,22 @@ def main():
             timeout=5,
             hints={"urgency": 2}
         )
+        prev = "Err"
     except Exception as e:
+      if prev == "HB": print()
       print(f"Error: {e}", file=sys.stderr)
+      prev = "Err"
     finally:
       try:
         time.sleep(heartbeat_interval)
       except KeyboardInterrupt:
+        if prev == "HB": print()
         print("\033[2D\033[K\nStopping BETAAL simulation...")
         try:
           send_heartbeat(status="OFF")
+          prev = "HB"
         except Exception:
-          print()
+          if prev == "HB": print()
           print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
         exit(0)
 
