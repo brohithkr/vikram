@@ -2,7 +2,6 @@
 
 ##################### VIKRAM - Defeating BETAAL's trickery #####################
 
-import ifaddr
 import platform
 import re
 import requests
@@ -13,7 +12,7 @@ from typing import Tuple
 if platform.system() != "Darwin":
   from plyer import notification
 
-from netutils import switch_interface
+from netutils import ADAPTERS, switch_interface, get_ip_for_interface
 
 BETAAL_ADDR = "10.11.52.150"
 BETAAL_PORT = 5000
@@ -53,12 +52,6 @@ def validate_hall_ticket_no(hall_ticket_no):
   pattern = r'^\d{2}BD[158]A(05|12|66|67)[A-HJ-NP-RT-Z0-9][A-HJ-NP-RT-Z1-9]$'
   return bool(re.match(pattern, hall_ticket_no))
 
-
-def validate_ip(ip):
-  """Validate IP address format."""
-  pattern = r'10.11.([0-9]|[1-9][0-9]|1[0-9]{2]|2})'
-
-
 def get_hall_ticket_no():
   """Get and validate hall ticket number interactively."""
   for _ in range(3):
@@ -91,18 +84,16 @@ def get_server_ip(servers, server_names):
 def get_local_ip() -> Tuple[str, requests.Session]:
   """Determine the local IP address of the device."""
   session = requests.sessions.session()
-  adapters = ifaddr.get_adapters()
 
-  for adapter in adapters:
-    for ip in adapter.ips:
-      if isinstance(ip.ip, str) and ip.is_IPv4:
-        switch_interface(session, adapter.nice_name)
-        try:
-          resp = session.get(BETAAL_URL, timeout=2)
-          if resp.status_code < 400:
-            return ip.ip, session
-        except (requests.ConnectionError, requests.Timeout):
-          pass
+  for adapter in ADAPTERS:
+    if ip:= get_ip_for_interface(adapter.nice_name):
+      switch_interface(session, adapter.nice_name)
+      try:
+        resp = session.get(BETAAL_URL, timeout=2)
+        if resp.status_code < 400:  
+          return ip, session
+      except (requests.ConnectionError, requests.Timeout):
+        pass
 
   raise Exception("Not connected to the test network, Exiting")
 
@@ -167,7 +158,8 @@ def main():
       send_heartbeat()
       prev = "HB"
     except (requests.ConnectionError, requests.Timeout):
-      if prev == "HB": print()
+      if prev == "HB": 
+        print()
       print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
       if platform.system() != "Darwin":
         notification.notify(
@@ -176,24 +168,27 @@ def main():
             app_name="Vikram",
             app_icon='notification',
             timeout=5,
-            hints={"urgency": 2}
+            hints={"urgency": 1}
         )
         prev = "Err"
     except Exception as e:
-      if prev == "HB": print()
+      if prev == "HB": 
+        print()
       print(f"Error: {e}", file=sys.stderr)
       prev = "Err"
     finally:
       try:
         time.sleep(heartbeat_interval)
       except KeyboardInterrupt:
-        if prev == "HB": print()
+        if prev == "HB": 
+          print()
         print("\033[2D\033[K\nStopping BETAAL simulation...")
         try:
           send_heartbeat(status="OFF")
           prev = "HB"
         except Exception:
-          if prev == "HB": print()
+          if prev == "HB": 
+            print()
           print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
         exit(0)
 
