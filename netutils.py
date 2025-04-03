@@ -1,4 +1,6 @@
+import platform
 import ifaddr
+import socket
 from requests.adapters import HTTPAdapter
 
 TIMEOUT = 2
@@ -6,13 +8,18 @@ ADAPTERS = ifaddr.get_adapters()
 
 
 class InterfaceBindingAdapter(HTTPAdapter):
-  def __init__(self, source_ip, timeout, *args, **kwargs):
-    self.source_ip = source_ip
+  def __init__(self, interface, timeout, *args, **kwargs):
+    self.interface = interface
+    self.source_ip = get_ip_for_interface(interface)
     self.timeout = timeout
     super().__init__(*args, **kwargs)
 
   def init_poolmanager(self, *args, **kwargs):
     kwargs["source_address"] = (self.source_ip, 0)
+    if platform.system() == "Linux":
+      kwargs["socket_options"] = [
+        (socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.interface.encode())
+      ]
     super().init_poolmanager(*args, **kwargs)
 
 
@@ -42,7 +49,7 @@ def switch_interface(session, new_interface):
     pass  # Ignore errors if the adapter is already missing
 
   # Create a new adapter with the new interface
-  new_adapter = InterfaceBindingAdapter(source_ip, TIMEOUT)
+  new_adapter = InterfaceBindingAdapter(new_interface, TIMEOUT)
 
   # Mount the new adapter
   session.mount("http://", new_adapter)
