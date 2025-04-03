@@ -8,9 +8,7 @@ import requests
 import sys
 import time
 from typing import Tuple
-
-if platform.system() != "Darwin":
-  from plyer import notification
+from plyer import notification
 
 from netutils import ADAPTERS, switch_interface, get_ip_for_interface
 
@@ -90,7 +88,7 @@ def get_local_ip() -> Tuple[str, requests.Session]:
       switch_interface(session, adapter.nice_name)
       try:
         resp = session.get(BETAAL_URL, timeout=2)
-        if resp.status_code < 400:  
+        if resp.status_code < 400:
           return ip, session
       except (requests.ConnectionError, requests.Timeout):
         pass
@@ -106,7 +104,7 @@ def send_heartbeat(status="ON"):
   if (status == "ON"):
     print(f"  {time.strftime('%I:%M:%S %p')} - Heartbeat sent. Status code:", hb_response.status_code, end="\r")
 
-  # Can be ignored??
+  # # Can be ignored??
   # if not hb_response.ok:
   #   print("Error response:", hb_response.text, file=sys.stderr)
 
@@ -158,21 +156,20 @@ def main():
       send_heartbeat()
       prev = "HB"
     except (requests.ConnectionError, requests.Timeout):
-      if prev == "HB": 
+      if prev == "HB":
         print()
       print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
-      if platform.system() != "Darwin":
-        notification.notify(
-            title='Disconnected from BETAAL server',
-            message='Try reconnecting to test network',
-            app_name="Vikram",
-            app_icon='notification',
-            timeout=5,
-            hints={"urgency": 1}
-        )
-        prev = "Err"
+      notification.notify(
+          title='Disconnected from BETAAL server',
+          message='Try reconnecting to test network',
+          app_name="Vikram",
+          app_icon='notification' if platform.system() == 'Linux' else '',
+          timeout=5,
+          hints={"urgency": 1}
+      )
+      prev = "Err"
     except Exception as e:
-      if prev == "HB": 
+      if prev == "HB":
         print()
       print(f"Error: {e}", file=sys.stderr)
       prev = "Err"
@@ -180,14 +177,14 @@ def main():
       try:
         time.sleep(heartbeat_interval)
       except KeyboardInterrupt:
-        if prev == "HB": 
+        if prev == "HB":
           print()
         print("\033[2D\033[K\nStopping BETAAL simulation...")
         try:
           send_heartbeat(status="OFF")
           prev = "HB"
         except Exception:
-          if prev == "HB": 
+          if prev == "HB":
             print()
           print(f"  {time.strftime('%I:%M:%S %p')} - Error: Disconnected from BETAAL server", file=sys.stderr)
         exit(0)
